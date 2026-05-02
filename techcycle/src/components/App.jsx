@@ -1,295 +1,341 @@
-import React, { useState, useMemo } from 'react';
-import { ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Star, Zap, Shield, Truck } from 'lucide-react';
-
+import { useState, useMemo, useEffect } from 'react';
+import { ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Star, Smartphone, Laptop, Watch, Tablet, User, Users, Building2, ChevronLeft, Truck, Shield, Crown } from 'lucide-react';
+import HesapAbonelikler from './HesapAbonelikler';
+import Pazar from './Pazar';
+import Kiralama from './Kiralama';
+import Odeme from './Odeme';
+import { supabase } from '../lib/supabase';
 
 // --- SAHTE VERİ (MOCK DATA) ---
 const MOCK_PRODUCTS = [
-  {
-    id: 1,
-    name: "AstroPhone 15 Pro Max",
-    category: "Telefonlar",
-    price: 64999,
-    rating: 4.8,
-    reviews: 124,
-    image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=800",
-    description: "Yeni nesil işlemci ve titanyum kasa ile sınırları zorlayın.",
-    badge: "Yeni"
-  },
-  {
-    id: 2,
-    name: "GamerBook Xtreme 16",
-    category: "Bilgisayarlar",
-    price: 45000,
-    rating: 4.9,
-    reviews: 89,
-    image: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?auto=format&fit=crop&q=80&w=800",
-    description: "RTX 4080 ekran kartı ile oyunlarda maksimum performans.",
-    badge: "Çok Satan"
-  },
-  {
-    id: 3,
-    name: "SonicBuds Pro ANC",
-    category: "Aksesuarlar",
-    price: 4599,
-    rating: 4.5,
-    reviews: 210,
-    image: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&q=80&w=800",
-    description: "Aktif gürültü engelleme teknolojisiyle sadece müziğe odaklanın.",
-    badge: null
-  },
-  {
-    id: 4,
-    name: "SmartWatch Ultra X",
-    category: "Giyilebilir",
-    price: 12500,
-    rating: 4.7,
-    reviews: 156,
-    image: "https://images.unsplash.com/photo-1434493789847-2f02dc6ca35d?auto=format&fit=crop&q=80&w=800",
-    description: "Titanyum gövde ve 3 haftaya varan pil ömrü.",
-    badge: "İndirim"
-  },
-  {
-    id: 5,
-    name: "UltraVision 65\" 4K OLED TV",
-    category: "Ev Elektroniği",
-    price: 52000,
-    rating: 4.6,
-    reviews: 45,
-    image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&q=80&w=800",
-    description: "Gerçek siyahlar ve kusursuz renklerle sinema evinizde.",
-    badge: null
-  },
-  {
-    id: 6,
-    name: "PowerBrick 20000mAh",
-    category: "Aksesuarlar",
-    price: 1299,
-    rating: 4.3,
-    reviews: 320,
-    image: "https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?auto=format&fit=crop&q=80&w=800",
-    description: "Hızlı şarj destekli yüksek kapasiteli taşınabilir batarya.",
-    badge: null
-  },
-  {
-    id: 7,
-    name: "AstroTab 11\" Pro",
-    category: "Bilgisayarlar",
-    price: 24500,
-    rating: 4.8,
-    reviews: 112,
-    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?auto=format&fit=crop&q=80&w=800",
-    description: "Çizim yapmak ve ofis işleri için mükemmel tablet.",
-    badge: null
-  },
-  {
-    id: 8,
-    name: "FotoMaster Z7",
-    category: "Ev Elektroniği",
-    price: 78000,
-    rating: 4.9,
-    reviews: 28,
-    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800",
-    description: "Tam kare (full-frame) aynasız kamera ile profesyonel çekimler.",
-    badge: "Profesyonel"
-  }
+  // ── iPHONE TELEFONLAR — her ürün benzersiz görsel ──────────────────────────
+  { id: 1,  name: "Apple iPhone 16 Pro Max",    category: "Telefonlar",   price: 89999,  rating: 4.9, reviews: 312, badge: "YENİ",      image: "https://images.unsplash.com/photo-1726587912121-ea21fcc57ff8?auto=format&fit=crop&q=80&w=800", description: "6.9 inç ekran, A18 Pro çip ve titanyum kasa ile iPhone'un zirvesi." },
+  { id: 2,  name: "Apple iPhone 16 Pro",        category: "Telefonlar",   price: 79999,  rating: 4.9, reviews: 287, badge: "YENİ",      image: "https://images.unsplash.com/photo-1726828537956-61ae115d7d7a?auto=format&fit=crop&q=80&w=800", description: "6.3 inç Super Retina XDR, A18 Pro çip ve Camera Control butonu." },
+  { id: 3,  name: "Apple iPhone 16 Plus",       category: "Telefonlar",   price: 69999,  rating: 4.8, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1726732946451-98690db97aae?auto=format&fit=crop&q=80&w=800", description: "6.7 inç büyük ekran ve A18 çip ile güçlü performans." },
+  { id: 4,  name: "Apple iPhone 16",            category: "Telefonlar",   price: 59999,  rating: 4.8, reviews: 415, badge: "YENİ",      image: "https://images.unsplash.com/photo-1726828497839-5a9c238326b2?auto=format&fit=crop&q=80&w=800", description: "A18 çip ve Camera Control ile yeni nesil iPhone deneyimi." },
+  { id: 5,  name: "Apple iPhone 15 Pro Max",    category: "Telefonlar",   price: 74999,  rating: 4.8, reviews: 524, badge: null,        image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?auto=format&fit=crop&q=80&w=800", description: "Titanyum tasarım ve 5× optik zoom ile profesyonel fotoğrafçılık." },
+  { id: 6,  name: "Apple iPhone 15 Pro",        category: "Telefonlar",   price: 64999,  rating: 4.8, reviews: 489, badge: null,        image: "https://images.unsplash.com/photo-1737190292587-603e3857876f?auto=format&fit=crop&q=80&w=800", description: "A17 Pro çip ve titanyum kasa ile üstün güç." },
+  { id: 7,  name: "Apple iPhone 15",            category: "Telefonlar",   price: 44999,  rating: 4.7, reviews: 632, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1705037282052-f6b776980f8d?auto=format&fit=crop&q=80&w=800", description: "Dynamic Island ve 48 MP kamera ile ana seride yeni standart." },
+  { id: 8,  name: "Apple iPhone 14 Pro Max",    category: "Telefonlar",   price: 59999,  rating: 4.7, reviews: 701, badge: "İNDİRİM",   image: "https://images.unsplash.com/photo-1632667827539-a54a9e0061a1?auto=format&fit=crop&q=80&w=800", description: "Always-On ekran ve A16 Bionic çip ile fark yaratan deneyim." },
+  { id: 9,  name: "Apple iPhone 14 Plus",       category: "Telefonlar",   price: 39999,  rating: 4.6, reviews: 385, badge: "İNDİRİM",   image: "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&q=80&w=800", description: "Büyük ekran ve uzun pil ömrüyle günlük kullanımda ideal." },
+  { id: 10, name: "Apple iPhone 14",            category: "Telefonlar",   price: 34999,  rating: 4.6, reviews: 891, badge: null,        image: "https://images.unsplash.com/photo-1726839662758-e3b5da59b0fb?auto=format&fit=crop&q=80&w=800", description: "A15 Bionic çip ve güvenilir kamera sistemi ile güçlü değer." },
+
+  // ── iPAD ──────────────────────────────────────────────────────────────────
+  { id: 11, name: "Apple iPad Pro 13\" M4",     category: "Tabletler",    price: 79999,  rating: 4.9, reviews: 154, badge: "YENİ",      image: "https://images.unsplash.com/photo-1669691177924-f12fcc3cc540?auto=format&fit=crop&q=80&w=800", description: "Ultra ince OLED ekran ve M4 çip ile profesyonel tablet deneyimi." },
+  { id: 12, name: "Apple iPad Pro 11\" M4",     category: "Tabletler",    price: 59999,  rating: 4.9, reviews: 189, badge: "YENİ",      image: "https://images.unsplash.com/photo-1561154464-82e9adf32764?auto=format&fit=crop&q=80&w=800", description: "M4 çip gücü kompakt formda, Apple Pencil Pro desteği." },
+  { id: 13, name: "Apple iPad Air 13\" M2",     category: "Tabletler",    price: 49999,  rating: 4.8, reviews: 212, badge: "YENİ",      image: "https://images.unsplash.com/photo-1630331528526-7d04c6eb463f?auto=format&fit=crop&q=80&w=800", description: "M2 çip ve geniş 13 inç ekranla yaratıcı işler için ideal." },
+  { id: 14, name: "Apple iPad Air 11\" M2",     category: "Tabletler",    price: 39999,  rating: 4.8, reviews: 278, badge: null,        image: "https://images.unsplash.com/photo-1585790051609-09928c362a42?auto=format&fit=crop&q=80&w=800", description: "Hafif yapısı ve M2 çip ile her yerde verimli çalışın." },
+  { id: 15, name: "Apple iPad mini 7",          category: "Tabletler",    price: 29999,  rating: 4.7, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1648806030599-c963fd14a22f?auto=format&fit=crop&q=80&w=800", description: "Cep boyutunda güç, 8.3 inç Liquid Retina ekran." },
+  { id: 16, name: "Apple iPad 10. Nesil",       category: "Tabletler",    price: 19999,  rating: 4.6, reviews: 445, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1607452258545-943d7243463c?auto=format&fit=crop&q=80&w=800", description: "USB-C, 10.9 inç ekran ve çok yönlü kullanım ile modern iPad." },
+
+  // ── MacBook ────────────────────────────────────────────────────────────────
+  { id: 17, name: "Apple MacBook Pro 16\" M4 Pro", category: "Bilgisayarlar", price: 149999, rating: 4.9, reviews: 98,  badge: "YENİ",      image: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&q=80&w=800", description: "M4 Pro çip, Liquid Retina XDR ekran ve 24 saate varan pil ömrü." },
+  { id: 18, name: "Apple MacBook Pro 14\" M4",  category: "Bilgisayarlar", price: 109999, rating: 4.9, reviews: 124, badge: "YENİ",      image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&q=80&w=800", description: "Kompakt MacBook Pro, M4 çip ile profesyonel iş akışları için." },
+  { id: 19, name: "Apple MacBook Air 15\" M3",  category: "Bilgisayarlar", price: 79999,  rating: 4.8, reviews: 215, badge: null,        image: "https://images.unsplash.com/photo-1737947640001-54765a2b0287?auto=format&fit=crop&q=80&w=800", description: "Fan gerektirmeyen tasarım, M3 gücü ve büyük 15 inç ekran." },
+  { id: 20, name: "Apple MacBook Air 13\" M3",  category: "Bilgisayarlar", price: 64999,  rating: 4.8, reviews: 312, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&q=80&w=800", description: "En popüler MacBook, M3 çip ve ultra ince yapısıyla her yerde yanınızda." },
+
+  // ── Apple Giyilebilir ──────────────────────────────────────────────────────
+  { id: 21, name: "Apple Watch Ultra 2",        category: "Giyilebilir",  price: 39999,  rating: 4.9, reviews: 87,  badge: "YENİ",      image: "https://images.unsplash.com/photo-1434494878577-86c23bcb06b9?auto=format&fit=crop&q=80&w=800", description: "Titanyum kasa ve 3000 nit parlaklık ile ekstrem koşullar için." },
+  { id: 22, name: "Apple Watch Series 10 46mm", category: "Giyilebilir",  price: 24999,  rating: 4.8, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1713056878930-c5604da9acfd?auto=format&fit=crop&q=80&w=800", description: "En ince Apple Watch, gelişmiş sağlık sensörleri ve geniş ekran." },
+  { id: 23, name: "Apple Watch Series 10 42mm", category: "Giyilebilir",  price: 22999,  rating: 4.8, reviews: 165, badge: "YENİ",      image: "https://images.unsplash.com/photo-1679436204470-87dc7da1e8be?auto=format&fit=crop&q=80&w=800", description: "Kompakt boyutta tüm Series 10 özellikleri." },
+  { id: 24, name: "Apple AirPods Pro 2. Nesil", category: "Giyilebilir",  price: 14999,  rating: 4.8, reviews: 542, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1606841837239-c5a1a4a07af7?auto=format&fit=crop&q=80&w=800", description: "H2 çip ve aktif gürültü engelleme ile en iyi AirPods deneyimi." },
+  { id: 25, name: "Apple AirPods 4",            category: "Giyilebilir",  price: 9999,   rating: 4.7, reviews: 387, badge: "YENİ",      image: "https://images.unsplash.com/photo-1571832975147-30ff45ad16e1?auto=format&fit=crop&q=80&w=800", description: "Yeniden tasarlanan AirPods, aktif gürültü engelleme ve H2 çip." },
+
+  // ── Samsung Telefonlar — her ürün benzersiz görsel ─────────────────────────
+  { id: 26, name: "Samsung Galaxy S25 Ultra",   category: "Telefonlar",   price: 84999,  rating: 4.9, reviews: 298, badge: "YENİ",      image: "https://images.unsplash.com/photo-1738830251513-a7bfef4b53c6?auto=format&fit=crop&q=80&w=800", description: "Snapdragon 8 Elite, S Pen ve 200 MP kamera ile Android zirvesi." },
+  { id: 27, name: "Samsung Galaxy S25+",        category: "Telefonlar",   price: 69999,  rating: 4.8, reviews: 245, badge: "YENİ",      image: "https://images.unsplash.com/photo-1738830234395-a351829a1c7b?auto=format&fit=crop&q=80&w=800", description: "6.7 inç Dynamic AMOLED ve Snapdragon 8 Elite ile mükemmel denge." },
+  { id: 28, name: "Samsung Galaxy S25",         category: "Telefonlar",   price: 54999,  rating: 4.8, reviews: 389, badge: "YENİ",      image: "https://images.unsplash.com/photo-1738830274216-20f63b8a0c02?auto=format&fit=crop&q=80&w=800", description: "Kompakt S25, Galaxy AI özellikleri ve üstün kamera kalitesiyle." },
+  { id: 29, name: "Samsung Galaxy S24 Ultra",   category: "Telefonlar",   price: 74999,  rating: 4.8, reviews: 467, badge: "İNDİRİM",   image: "https://images.unsplash.com/photo-1738830246146-599b67d009db?auto=format&fit=crop&q=80&w=800", description: "Galaxy AI, S Pen ve titanyum kasa ile üstün akıllı telefon." },
+  { id: 30, name: "Samsung Galaxy S24+",        category: "Telefonlar",   price: 59999,  rating: 4.7, reviews: 356, badge: "İNDİRİM",   image: "https://images.unsplash.com/photo-1592890288564-76628a30a657?auto=format&fit=crop&q=80&w=800", description: "Galaxy AI ve Snapdragon 8 Gen 3 ile güçlü S serisi deneyimi." },
+  { id: 31, name: "Samsung Galaxy S24",         category: "Telefonlar",   price: 44999,  rating: 4.7, reviews: 521, badge: null,        image: "https://images.unsplash.com/photo-1704018453307-d563498b585b?auto=format&fit=crop&q=80&w=800", description: "AI fotoğrafçılık ve 7 yıl güncelleme garantisi." },
+  { id: 32, name: "Samsung Galaxy Z Fold 6",    category: "Telefonlar",   price: 99999,  rating: 4.8, reviews: 134, badge: "YENİ",      image: "https://images.unsplash.com/photo-1568378711447-f5eef04d85b5?auto=format&fit=crop&q=80&w=800", description: "Galaxy AI ile güçlendirilmiş, ince katlanabilir akıllı telefon." },
+  { id: 33, name: "Samsung Galaxy Z Flip 6",    category: "Telefonlar",   price: 59999,  rating: 4.7, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1724149258788-d9cb3c888c0b?auto=format&fit=crop&q=80&w=800", description: "FlexWindow ile akıllı kullanım ve şık flip tasarım." },
+  { id: 34, name: "Samsung Galaxy A55",         category: "Telefonlar",   price: 19999,  rating: 4.5, reviews: 687, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1591122947157-26bad3a117d2?auto=format&fit=crop&q=80&w=800", description: "50 MP kamera ve IP67 su direnci ile uygun fiyatlı orta sınıf." },
+  { id: 35, name: "Samsung Galaxy A35",         category: "Telefonlar",   price: 14999,  rating: 4.4, reviews: 823, badge: null,        image: "https://images.unsplash.com/photo-1620490306292-81a9c5e6c70c?auto=format&fit=crop&q=80&w=800", description: "Geniş batarya ve çoklu kamera ile ekonomik seçenek." },
+
+  // ── Samsung Tabletler ──────────────────────────────────────────────────────
+  { id: 36, name: "Samsung Galaxy Tab S10 Ultra", category: "Tabletler",  price: 54999,  rating: 4.9, reviews: 112, badge: "YENİ",      image: "https://images.unsplash.com/photo-1654852360714-3899af1f5be7?auto=format&fit=crop&q=80&w=800", description: "14.6 inç AMOLED ekran ve Snapdragon 8 Gen 3 ile tablet zirvesi." },
+  { id: 37, name: "Samsung Galaxy Tab S10+",    category: "Tabletler",    price: 44999,  rating: 4.8, reviews: 156, badge: "YENİ",      image: "https://images.unsplash.com/photo-1620288650879-20db0eb38c05?auto=format&fit=crop&q=80&w=800", description: "12.4 inç AMOLED ekran ve Galaxy AI ile premium tablet." },
+  { id: 38, name: "Samsung Galaxy Tab S10",     category: "Tabletler",    price: 34999,  rating: 4.8, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1585790050230-5dd28404ccb9?auto=format&fit=crop&q=80&w=800", description: "11 inç Dinamik AMOLED 2X ve S Pen dahil." },
+  { id: 39, name: "Samsung Galaxy Tab S9 FE",   category: "Tabletler",    price: 19999,  rating: 4.6, reviews: 287, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1661595676971-9c756771792a?auto=format&fit=crop&q=80&w=800", description: "S Pen dahil, IP68 ve geniş ekranla değer odaklı Galaxy Tab." },
+  { id: 40, name: "Samsung Galaxy Tab A9+",     category: "Tabletler",    price: 12999,  rating: 4.4, reviews: 412, badge: null,        image: "https://images.unsplash.com/photo-1661595676830-2a0a1ccab283?auto=format&fit=crop&q=80&w=800", description: "11 inç ekran ve Dolby Atmos ses ile eğlence tableti." },
+
+  // ── Samsung Bilgisayarlar ──────────────────────────────────────────────────
+  { id: 41, name: "Samsung Galaxy Book4 Ultra",    category: "Bilgisayarlar", price: 84999,  rating: 4.8, reviews: 78,  badge: "YENİ", image: "https://images.unsplash.com/photo-1522202222206-b75023c48f4f?auto=format&fit=crop&q=80&w=800", description: "Intel Core Ultra 9 ve RTX 4070 ile üst segment Galaxy dizüstü." },
+  { id: 42, name: "Samsung Galaxy Book4 Pro 16\"", category: "Bilgisayarlar", price: 64999,  rating: 4.7, reviews: 92,  badge: null,   image: "https://images.unsplash.com/photo-1652105425436-69c6ff3b77bd?auto=format&fit=crop&q=80&w=800", description: "16 inç AMOLED ekran ve Intel Core Ultra 7 ile profesyonel performans." },
+  { id: 43, name: "Samsung Galaxy Book4 Pro 14\"", category: "Bilgisayarlar", price: 54999,  rating: 4.7, reviews: 108, badge: null,   image: "https://images.unsplash.com/photo-1706469980815-e2c54ace4560?auto=format&fit=crop&q=80&w=800", description: "Kompakt AMOLED dizüstü, Intel Core Ultra 5 ve uzun pil ömrü." },
+  { id: 44, name: "Samsung Galaxy Book4 360 15\"", category: "Bilgisayarlar", price: 44999,  rating: 4.6, reviews: 134, badge: "YENİ", image: "https://images.unsplash.com/photo-1706469980850-8b8ec8da19fe?auto=format&fit=crop&q=80&w=800", description: "360° dönen ekran ve S Pen desteği ile 2-in-1 dizüstü." },
+  { id: 45, name: "Samsung Galaxy Book4 360 13\"", category: "Bilgisayarlar", price: 34999,  rating: 4.5, reviews: 167, badge: null,   image: "https://images.unsplash.com/photo-1525547719571-a2d4ac8945e2?auto=format&fit=crop&q=80&w=800", description: "İnce yapı, 360° ekran ve S Pen ile kompakt 2-in-1." },
+
+  // ── Samsung Giyilebilir ────────────────────────────────────────────────────
+  { id: 46, name: "Samsung Galaxy Watch Ultra",  category: "Giyilebilir", price: 29999,  rating: 4.8, reviews: 134, badge: "YENİ",      image: "https://images.unsplash.com/photo-1722153105551-cfea928e80de?auto=format&fit=crop&q=80&w=800", description: "Titanyum kasa ve 60 saate varan pil ömrüyle premium akıllı saat." },
+  { id: 47, name: "Samsung Galaxy Watch 7 44mm", category: "Giyilebilir", price: 19999,  rating: 4.7, reviews: 245, badge: "YENİ",      image: "https://images.unsplash.com/photo-1722152909289-89d345b9c9a0?auto=format&fit=crop&q=80&w=800", description: "Gelişmiş sağlık izleme ve Galaxy AI ile akıllı saat deneyimi." },
+  { id: 48, name: "Samsung Galaxy Watch 7 40mm", category: "Giyilebilir", price: 17999,  rating: 4.7, reviews: 198, badge: "YENİ",      image: "https://images.unsplash.com/photo-1553545204-4f7d339aa06a?auto=format&fit=crop&q=80&w=800", description: "Kompakt boyut, tam Galaxy Watch 7 özellikleri." },
+  { id: 49, name: "Samsung Galaxy Buds3 Pro",    category: "Giyilebilir", price: 9999,   rating: 4.7, reviews: 312, badge: "YENİ",      image: "https://images.unsplash.com/photo-1618213520536-ce37aabcd9e5?auto=format&fit=crop&q=80&w=800", description: "Aktif gürültü engelleme ve 360 Ses ile premium kulaklık." },
+  { id: 50, name: "Samsung Galaxy Buds3",        category: "Giyilebilir", price: 6999,   rating: 4.5, reviews: 487, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1598331668826-20cecc596b86?auto=format&fit=crop&q=80&w=800", description: "Açık form faktörü ve temiz ses kalitesiyle günlük kulaklık." },
 ];
 
-const CATEGORIES = ["Tümü", "Telefonlar", "Bilgisayarlar", "Giyilebilir", "Aksesuarlar", "Ev Elektroniği"];
+const CATEGORIES = ["Tümü", "Telefonlar", "Tabletler", "Bilgisayarlar", "Giyilebilir"];
+
 
 // --- ANA BİLEŞEN ---
 export default function App() {
+  const [currentView, setCurrentView] = useState('home'); 
+  const [selectedProduct, setSelectedProduct] = useState(null); // Seçilen ürünü tutar
+  
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("Tümü");
   const [searchQuery, setSearchQuery] = useState("");
+  const [reviewsByProduct, setReviewsByProduct] = useState({});
+  const [reviewForm, setReviewForm] = useState({ rating: 0, hoverRating: 0, name: '', comment: '' });
 
-  // --- SEPET İŞLEMLERİ ---
-  const addToCart = (product) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.id === product.id);
-      if (existingItem) {
-        return prevCart.map(item => 
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prevCart, { ...product, quantity: 1 }];
+  const fetchReviews = async (productId) => {
+    const { data } = await supabase
+      .from('product_reviews')
+      .select('*')
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false });
+    if (data) {
+      setReviewsByProduct(prev => ({
+        ...prev,
+        [productId]: data.map(r => ({
+          id: r.id,
+          name: r.name,
+          rating: r.rating,
+          comment: r.comment,
+          user_id: r.user_id,
+          date: new Date(r.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+        })),
+      }));
+    }
+  };
+
+  useEffect(() => {
+    setReviewForm({ rating: 0, hoverRating: 0, name: '', comment: '' });
+    if (selectedProduct?.id) fetchReviews(selectedProduct.id);
+  }, [selectedProduct?.id]);
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [currentSub, setCurrentSub] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUser(session?.user ?? null);
     });
-    setIsCartOpen(true); // Sepete ekleyince sepeti aç
+    const { data: { subscription: authListener } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+    return () => authListener.unsubscribe();
+  }, []);
+
+  const fetchCurrentSub = async () => {
+    if (!currentUser) { setCurrentSub(null); return; }
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('status', 'active')
+      .order('started_at', { ascending: false })
+      .limit(1);
+    setCurrentSub(data?.[0] ?? null);
   };
 
-  const removeFromCart = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.id !== productId));
+  useEffect(() => {
+    fetchCurrentSub();
+  }, [currentUser?.id]);
+
+  const handleCheckout = () => {
+    if (!currentUser) {
+      setIsCartOpen(false);
+      setCurrentView('account');
+      return;
+    }
+    setIsCartOpen(false);
+    setCurrentView('odeme');
   };
 
-  const updateQuantity = (productId, delta) => {
-    setCart(prevCart => prevCart.map(item => {
-      if (item.id === productId) {
-        const newQuantity = item.quantity + delta;
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
-      }
-      return item;
-    }));
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!reviewForm.rating || !reviewForm.name.trim() || !reviewForm.comment.trim()) return;
+    await supabase.from('product_reviews').insert({
+      product_id: selectedProduct.id,
+      user_id: currentUser?.id ?? null,
+      name: reviewForm.name.trim(),
+      rating: reviewForm.rating,
+      comment: reviewForm.comment.trim(),
+    });
+    setReviewForm({ rating: 0, hoverRating: 0, name: '', comment: '' });
+    await fetchReviews(selectedProduct.id);
   };
 
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
+  const addToCart = (product) => {
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id);
+      if (existing) return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      return [...prev, { ...product, quantity: 1 }];
+    });
+    setIsCartOpen(true);
+  };
 
-  // --- FİLTRELEME İŞLEMLERİ ---
+  const removeFromCart = (id) => setCart(prev => prev.filter(item => item.id !== id));
+  const updateQuantity = (id, delta) => setCart(prev => prev.map(item => {
+    if (item.id === id) {
+      const newQ = item.quantity + delta;
+      return newQ > 0 ? { ...item, quantity: newQ } : item;
+    }
+    return item;
+  }));
+
+  const cartTotal = cart.reduce((t, item) => t + (item.price * item.quantity), 0);
+  const cartItemCount = cart.reduce((c, item) => c + item.quantity, 0);
+
   const filteredProducts = useMemo(() => {
     return MOCK_PRODUCTS.filter(product => {
-      const matchesCategory = selectedCategory === "Tümü" || product.category === selectedCategory;
-      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            product.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
+      const matchCat = selectedCategory === "Tümü" || product.category === selectedCategory;
+      const matchSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchCat && matchSearch;
     });
   }, [selectedCategory, searchQuery]);
 
-  // --- PARA BİRİMİ FORMATI ---
+  // Fiyat formatı görseldeki gibi (₺64.999,00)
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(price);
+    const formattedNumber = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
+    return `₺${formattedNumber}`;
   };
+
+  const tier = currentSub?.plan_type === 'elite' ? 'elite'
+             : currentSub?.plan_type === 'pro' ? 'pro'
+             : null;
+  const isElite = tier === 'elite';
+  const isPro = tier === 'pro';
+
+  // Tema renkleri
+  const cardHoverBorder = isElite ? 'hover:border-amber-300 hover:shadow-amber-50' : isPro ? 'hover:border-purple-200 hover:shadow-purple-50' : '';
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col">
       {/* NAVBAR */}
-      <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <nav className={`border-b sticky top-0 z-40 transition-colors duration-500 ${isElite ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-200'}`}>
+        {tier && (
+          <div className={`h-1 bg-gradient-to-r ${isElite ? 'from-amber-400 via-yellow-300 to-amber-500' : 'from-violet-500 to-purple-600'}`} />
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <div className="bg-indigo-600 text-white p-2 rounded-lg mr-2">
-                <Zap className="h-6 w-6" />
-              </div>
-              <span className="font-bold text-2xl tracking-tight text-indigo-950">Astro<span className="text-indigo-600">Tech</span></span>
+            {/* LOGO ALANI */}
+            <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => setCurrentView('home')}>
+              <img src="/logo.png" alt="Mağaza Logo" className="h-10 w-auto" />
+              <span className={`ml-2 text-xl font-bold ${isElite ? 'text-white' : 'text-gray-900'}`}>Tech Cycle</span>
             </div>
 
-            {/* Masaüstü Arama Çubuğu */}
             <div className="hidden md:flex flex-1 max-w-lg mx-8">
               <div className="relative w-full">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className={`h-5 w-5 ${isElite ? 'text-slate-400' : 'text-gray-400'}`} />
                 </div>
                 <input
                   type="text"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-full leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all"
+                  className={`block w-full pl-10 pr-3 py-2.5 border rounded-full focus:ring-1 sm:text-sm ${isElite ? 'border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-amber-500' : 'border-gray-300 bg-gray-50 focus:ring-indigo-500'}`}
                   placeholder="Ürün, kategori veya marka ara..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); if(currentView !== 'home') setCurrentView('home'); }}
                 />
               </div>
             </div>
 
-            {/* Sağ Menü İkonları */}
-            <div className="flex items-center space-x-4">
-              <button 
-                onClick={() => setIsCartOpen(true)}
-                className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors focus:outline-none"
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setCurrentView('pazar')}
+                className={`hidden md:flex items-center gap-1.5 text-sm font-medium transition-colors px-3 py-2 rounded-xl ${
+                  currentView === 'pazar'
+                    ? (isElite ? 'text-amber-400 bg-amber-500/10' : 'text-indigo-600 bg-indigo-50')
+                    : (isElite ? 'text-slate-300 hover:text-amber-400' : 'text-gray-600 hover:text-indigo-600')
+                }`}
               >
-                <ShoppingCart className="h-6 w-6" />
-                {cartItemCount > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-500 rounded-full">
-                    {cartItemCount}
-                  </span>
-                )}
+                <Users className="h-4 w-4" />
+                Pazar
               </button>
-              <button 
-                className="md:hidden p-2 text-gray-600 hover:text-indigo-600 focus:outline-none"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+
+              <button
+                onClick={() => setCurrentView('kiralama')}
+                className={`hidden md:flex items-center gap-1.5 text-sm font-medium transition-colors px-3 py-2 rounded-xl ${
+                  currentView === 'kiralama'
+                    ? (isElite ? 'text-amber-400 bg-amber-500/10' : 'text-indigo-600 bg-indigo-50')
+                    : (isElite ? 'text-slate-300 hover:text-amber-400' : 'text-gray-600 hover:text-indigo-600')
+                }`}
               >
+                <Building2 className="h-4 w-4" />
+                Kiralama
+              </button>
+
+              <button
+                onClick={() => setCurrentView('account')}
+                className={`hidden md:flex items-center space-x-2 transition-colors mr-2 ${
+                  currentView === 'account'
+                    ? (isElite ? 'text-amber-400' : isPro ? 'text-purple-600' : 'text-indigo-600')
+                    : (isElite ? 'text-slate-300 hover:text-amber-400' : isPro ? 'text-gray-600 hover:text-purple-600' : 'text-gray-600 hover:text-indigo-600')
+                }`}
+              >
+                <div className={`p-2 rounded-full ${
+                  currentView === 'account'
+                    ? (isElite ? 'bg-amber-500/20' : isPro ? 'bg-purple-100' : 'bg-indigo-100')
+                    : (isElite ? 'bg-slate-700' : 'bg-gray-100')
+                }`}><User className="h-5 w-5" /></div>
+                <div className="text-left hidden lg:block">
+                  <p className={`text-[11px] font-medium mb-0.5 ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>
+                    Merhaba, {currentUser ? (currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0]) : 'Misafir'}
+                  </p>
+                  <p className="text-sm font-bold">Hesabım</p>
+                </div>
+              </button>
+
+              {tier && (
+                <div className={`hidden md:flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold ${isElite ? 'bg-amber-500 text-white' : 'bg-purple-600 text-white'}`}>
+                  <Crown className="h-3 w-3" />
+                  {isElite ? 'ELİT VIP' : 'PRO'}
+                </div>
+              )}
+
+              <button onClick={() => setIsCartOpen(true)} className={`relative p-2 ${isElite ? 'text-slate-300 hover:text-amber-400' : 'text-gray-600 hover:text-indigo-600'}`}>
+                <ShoppingCart className="h-6 w-6" />
+                {cartItemCount > 0 && <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white transform translate-x-1/4 -translate-y-1/4 bg-red-500 rounded-full">{cartItemCount}</span>}
+              </button>
+              <button className={`md:hidden p-2 ${isElite ? 'text-slate-300' : 'text-gray-600'}`} onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                 {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
           </div>
         </div>
-
-        {/* Mobil Menü (Arama çubuğu) */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 bg-white px-4 py-4">
-             <div className="relative w-full">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  placeholder="Ürün ara..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-          </div>
-        )}
       </nav>
 
-      {/* SEPET SİDEBAR (DRAWER) */}
+      {/* SEPET ÇEKMECESİ */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 transition-opacity" onClick={() => setIsCartOpen(false)} />
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setIsCartOpen(false)} />
           <div className="fixed inset-y-0 right-0 max-w-full flex">
-            <div className="w-screen max-w-md transform transition-transform ease-in-out duration-300 shadow-2xl bg-white flex flex-col h-full">
-              
-              {/* Sepet Başlık */}
-              <div className="flex items-center justify-between px-4 py-5 border-b border-gray-200 sm:px-6">
-                <h2 className="text-xl font-bold text-gray-900">Alışveriş Sepeti</h2>
-                <button
-                  onClick={() => setIsCartOpen(false)}
-                  className="text-gray-400 hover:text-gray-500 focus:outline-none"
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Sepet İçeriği */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+            <div className="w-screen max-w-md transform transition-transform shadow-2xl bg-white flex flex-col h-full">
+              <div className="flex items-center justify-between px-4 py-5 border-b"><h2 className="text-xl font-bold">Alışveriş Sepeti</h2><button onClick={() => setIsCartOpen(false)}><X className="h-6 w-6" /></button></div>
+              <div className="flex-1 overflow-y-auto p-4">
                 {cart.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-center text-gray-500">
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500">
                     <ShoppingCart className="h-16 w-16 mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">Sepetiniz şu an boş.</p>
-                    <p className="text-sm mt-1">Hemen harika ürünleri keşfetmeye başlayın!</p>
-                    <button 
-                      onClick={() => setIsCartOpen(false)}
-                      className="mt-6 px-6 py-2 bg-indigo-600 text-white rounded-full font-medium hover:bg-indigo-700 transition"
-                    >
-                      Alışverişe Dön
-                    </button>
+                    <p className="text-lg">Sepetiniz boş.</p>
                   </div>
                 ) : (
                   <ul className="space-y-6">
-                    {cart.map((item) => (
+                    {cart.map(item => (
                       <li key={item.id} className="flex py-2">
-                        <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
-                          <img
-                            src={item.image}
-                            alt={item.name}
-                            className="h-full w-full object-cover object-center"
-                          />
-                        </div>
-                        <div className="ml-4 flex flex-1 flex-col justify-between">
-                          <div>
-                            <div className="flex justify-between text-base font-medium text-gray-900">
-                              <h3 className="line-clamp-2 leading-tight pr-4">{item.name}</h3>
-                              <p className="ml-4 whitespace-nowrap text-indigo-600">{formatPrice(item.price * item.quantity)}</p>
+                        <img src={item.image} alt={item.name} className="h-24 w-24 rounded-md border object-cover" />
+                        <div className="ml-4 flex flex-1 flex-col">
+                          <div className="flex justify-between font-medium"><h3>{item.name}</h3><p>{formatPrice(item.price * item.quantity)}</p></div>
+                          <div className="flex items-center justify-between mt-auto">
+                            <div className="flex items-center border rounded-lg bg-gray-50">
+                              <button onClick={() => updateQuantity(item.id, -1)} className="p-1"><Minus className="h-4 w-4" /></button>
+                              <span className="px-3 text-sm">{item.quantity}</span>
+                              <button onClick={() => updateQuantity(item.id, 1)} className="p-1"><Plus className="h-4 w-4" /></button>
                             </div>
-                            <p className="mt-1 text-sm text-gray-500">{item.category}</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center border border-gray-300 rounded-lg bg-gray-50">
-                              <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:bg-gray-200 rounded-l-lg transition">
-                                <Minus className="h-4 w-4 text-gray-600" />
-                              </button>
-                              <span className="px-3 text-sm font-medium">{item.quantity}</span>
-                              <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:bg-gray-200 rounded-r-lg transition">
-                                <Plus className="h-4 w-4 text-gray-600" />
-                              </button>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeFromCart(item.id)}
-                              className="font-medium text-red-500 hover:text-red-700 p-1 flex items-center"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            <button onClick={() => removeFromCart(item.id)} className="text-red-500 p-1"><Trash2 className="h-4 w-4" /></button>
                           </div>
                         </div>
                       </li>
@@ -297,17 +343,11 @@ export default function App() {
                   </ul>
                 )}
               </div>
-
-              {/* Sepet Alt Kısım (Toplam ve Checkout) */}
               {cart.length > 0 && (
-                <div className="border-t border-gray-200 px-4 py-6 sm:px-6 bg-gray-50">
-                  <div className="flex justify-between text-lg font-bold text-gray-900 mb-4">
-                    <p>Ara Toplam</p>
-                    <p>{formatPrice(cartTotal)}</p>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-6">Kargo ve vergiler ödeme adımında hesaplanacaktır.</p>
-                  <button className="w-full flex items-center justify-center rounded-xl border border-transparent bg-indigo-600 px-6 py-4 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all">
-                    Güvenli Ödeme Yap
+                <div className="border-t px-4 py-6 bg-gray-50">
+                  <div className="flex justify-between font-bold text-lg mb-4"><p>Ara Toplam</p><p>{formatPrice(cartTotal)}</p></div>
+                  <button onClick={handleCheckout} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-medium">
+                    {currentUser ? 'Güvenli Ödeme Yap' : 'Giriş Yap ve Ödeme Yap'}
                   </button>
                 </div>
               )}
@@ -316,181 +356,359 @@ export default function App() {
         </div>
       )}
 
-      {/* ANA İÇERİK */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ANA İÇERİK ALANI */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
         
-        {/* Hero Banner */}
-        {!searchQuery && selectedCategory === "Tümü" && (
-          <div className="relative rounded-2xl overflow-hidden bg-indigo-900 text-white mb-12 shadow-xl">
-            <div className="absolute inset-0">
-              <img 
-                src="https://images.unsplash.com/photo-1550009158-9ebf69173e03?auto=format&fit=crop&q=80&w=2000" 
-                alt="Hero Background" 
-                className="w-full h-full object-cover opacity-30 mix-blend-overlay"
-              />
+        {/* === ANA SAYFA (MAĞAZA) GÖRÜNÜMÜ === */}
+        {currentView === 'home' && (
+          <>
+            {!searchQuery && selectedCategory === "Tümü" && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-indigo-200'}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'}`}><Smartphone className="h-7 w-7" /></div>
+                  <h3 className="font-bold text-sm">Telefon</h3>
+                </a>
+                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-blue-200'}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'}`}><Laptop className="h-7 w-7" /></div>
+                  <h3 className="font-bold text-sm">Laptop</h3>
+                </a>
+                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-purple-200'}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white'}`}><Watch className="h-7 w-7" /></div>
+                  <h3 className="font-bold text-sm">Wearables</h3>
+                </a>
+                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-green-200'}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white'}`}><Tablet className="h-7 w-7" /></div>
+                  <h3 className="font-bold text-sm">Tablet</h3>
+                </a>
+              </div>
+            )}
+
+            <div id="products-section">
+              <h2 className="text-2xl font-bold mb-8">{searchQuery ? `"${searchQuery}" için sonuçlar` : "Popüler Ürünler"}</h2>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+                {filteredProducts.map(product => (
+                  <div
+                    key={product.id}
+                    className={`bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col h-full group transition-all duration-300 cursor-pointer ${isElite ? 'border-amber-100 hover:shadow-lg hover:border-amber-300' : isPro ? 'border-purple-100 hover:shadow-md hover:border-purple-200' : 'border-gray-100 hover:shadow-md'}`}
+                    onClick={() => { setSelectedProduct(product); setCurrentView('productDetail'); }}
+                  >
+                    
+                    <div className="relative h-[220px] w-full bg-[#f8f9fa] p-6 flex items-center justify-center flex-shrink-0">
+                      {product.badge && (
+                        <span className="absolute top-4 left-4 z-10 bg-[#5b4eff] text-white text-[11px] font-bold px-3 py-1.5 rounded-full uppercase tracking-wider leading-none">
+                          {product.badge}
+                        </span>
+                      )}
+                      <img src={product.image} alt={product.name} className="max-h-full max-w-full object-contain mix-blend-darken group-hover:scale-105 transition-transform duration-500" />
+                    </div>
+
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider mb-1">{product.category}</div>
+                      <h3 className="font-bold text-[16px] text-gray-900 mb-2 leading-tight">{product.name}</h3>
+                      
+                      <div className="flex items-center text-[13px] mb-3">
+                        <Star className="h-4 w-4 fill-current text-[#ffc107] mr-1.5" />
+                        <span className="font-bold text-gray-900">{product.rating}</span>
+                        <span className="mx-2 text-gray-300">•</span>
+                        <span className="text-gray-500">{product.reviews} Değerlendirme</span>
+                      </div>
+
+                      <p className="text-[13px] text-gray-500 mb-6 line-clamp-2 leading-relaxed flex-1">{product.description}</p>
+                      
+                      <div className="flex items-center justify-between mt-auto">
+                        <span className="text-[20px] font-black text-gray-900">{formatPrice(product.price)}</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); addToCart(product); }} 
+                          className="bg-[#0f172a] text-white p-3 rounded-xl hover:bg-indigo-600 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 flex items-center justify-center"
+                        >
+                          <ShoppingCart className="h-5 w-5" strokeWidth={2} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="relative z-10 p-8 sm:p-12 lg:p-16 flex flex-col items-start max-w-2xl">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-indigo-500 text-white mb-4">
-                Bahar İndirimi %20'ye Varan Avantajlar
-              </span>
-              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-4">
-                Geleceğin Teknolojisi, Bugün Sizinle.
-              </h1>
-              <p className="text-lg text-indigo-100 mb-8 max-w-lg">
-                En yeni akıllı telefonlar, güçlü dizüstü bilgisayarlar ve giyilebilir teknolojilerde benzersiz fırsatları keşfedin.
-              </p>
-              <button 
-                onClick={() => document.getElementById('products-section').scrollIntoView({ behavior: 'smooth' })}
-                className="bg-white text-indigo-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg"
-              >
-                Ürünleri Keşfet
-              </button>
-            </div>
-          </div>
+          </>
         )}
 
-        {/* Bilgi Kartları */}
-        {!searchQuery && selectedCategory === "Tümü" && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-              <div className="bg-blue-100 p-3 rounded-full text-blue-600">
-                <Truck className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Ücretsiz Kargo</h3>
-                <p className="text-sm text-gray-500">1000 TL üzeri siparişlerde</p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-              <div className="bg-green-100 p-3 rounded-full text-green-600">
-                <Shield className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">2 Yıl Garanti</h3>
-                <p className="text-sm text-gray-500">Tüm elektronik ürünlerde</p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-              <div className="bg-purple-100 p-3 rounded-full text-purple-600">
-                <Zap className="h-6 w-6" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Hızlı Teslimat</h3>
-                <p className="text-sm text-gray-500">Aynı gün kargoya teslim</p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* === ÜRÜN DETAY GÖRÜNÜMÜ === */}
+        {currentView === 'productDetail' && selectedProduct && (
+          <div className="animate-in fade-in duration-300">
+            <button
+              onClick={() => setCurrentView('home')}
+              className="flex items-center text-gray-500 hover:text-indigo-600 mb-6 transition-colors font-medium"
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" />
+              Alışverişe Dön
+            </button>
 
-        {/* Ürünler Bölümü */}
-        <div id="products-section">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {searchQuery ? `"${searchQuery}" için sonuçlar` : selectedCategory === "Tümü" ? "Popüler Ürünler" : selectedCategory}
-            </h2>
-            
-            {/* Kategori Filtreleri */}
-            <div className="flex overflow-x-auto hide-scrollbar space-x-2 pb-2 md:pb-0">
-              {CATEGORIES.map(category => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setSearchQuery(""); // Kategori değiştiğinde aramayı temizle
-                  }}
-                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-medium transition-colors ${
-                    selectedCategory === category
-                      ? "bg-indigo-600 text-white shadow-md"
-                      : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="flex flex-col md:flex-row">
 
-          {/* Ürün Izgarası */}
-          {filteredProducts.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-gray-100">
-              <div className="text-gray-400 mb-4 flex justify-center">
-                <Search className="h-12 w-12" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900">Ürün bulunamadı</h3>
-              <p className="text-gray-500 mt-2">Arama kriterlerinizi değiştirerek tekrar deneyin.</p>
-              <button 
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("Tümü");
-                }}
-                className="mt-4 text-indigo-600 font-medium hover:underline"
-              >
-                Tüm ürünleri göster
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map(product => (
-                <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col group">
-                  {/* Resim Alanı */}
-                  <div className="relative aspect-square overflow-hidden bg-gray-100 p-4">
-                    {product.badge && (
-                      <span className="absolute top-4 left-4 z-10 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                        {product.badge}
-                      </span>
-                    )}
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-                    />
+                {/* Sol: Ürün Görseli */}
+                <div className="md:w-1/2 p-8 md:p-16 bg-[#f8f9fa] flex items-center justify-center relative min-h-[400px]">
+                  {selectedProduct.badge && (
+                    <span className="absolute top-6 left-6 z-10 bg-[#5b4eff] text-white text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider">
+                      {selectedProduct.badge}
+                    </span>
+                  )}
+                  <img
+                    src={selectedProduct.image}
+                    alt={selectedProduct.name}
+                    className="max-w-full h-auto max-h-[500px] object-contain mix-blend-darken hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+
+                {/* Sağ: Ürün Bilgileri */}
+                <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+                  <div className="text-sm text-gray-500 font-bold uppercase tracking-wider mb-2">{selectedProduct.category}</div>
+                  <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4 leading-tight">{selectedProduct.name}</h1>
+
+                  <div className="flex items-center text-sm mb-6">
+                    <Star className="h-5 w-5 fill-current text-[#ffc107] mr-1.5" />
+                    <span className="font-bold text-gray-900 text-lg">{selectedProduct.rating}</span>
+                    <span className="mx-3 text-gray-300">•</span>
+                    <span className="text-gray-500 cursor-pointer hover:text-indigo-600 transition">{selectedProduct.reviews} Değerlendirme</span>
                   </div>
 
-                  {/* Ürün Detayları */}
-                  <div className="p-5 flex flex-col flex-1">
-                    <div className="text-xs text-gray-500 mb-1 font-medium tracking-wide uppercase">{product.category}</div>
-                    <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-1 group-hover:text-indigo-600 transition-colors">{product.name}</h3>
-                    
-                    {/* Yıldızlar */}
-                    <div className="flex items-center mb-3">
-                      <div className="flex items-center text-yellow-400">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="ml-1 text-sm font-bold text-gray-700">{product.rating}</span>
-                      </div>
-                      <span className="mx-2 text-gray-300">•</span>
-                      <span className="text-sm text-gray-500">{product.reviews} Değerlendirme</span>
-                    </div>
+                  <div className="text-4xl font-black text-gray-900 mb-6">{formatPrice(selectedProduct.price)}</div>
 
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2 flex-1">{product.description}</p>
-                    
-                    <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                      <span className="text-xl font-extrabold text-gray-900">{formatPrice(product.price)}</span>
-                      <button 
-                        onClick={() => addToCart(product)}
-                        className="bg-gray-900 text-white p-2.5 rounded-xl hover:bg-indigo-600 hover:scale-105 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                        title="Sepete Ekle"
-                      >
-                        <ShoppingCart className="h-5 w-5" />
-                      </button>
+                  <p className="text-gray-600 text-lg mb-8 leading-relaxed">
+                    {selectedProduct.description}
+                    <br /><br />
+                    Üstün teknolojisi, şık tasarımı ve dayanıklı malzemesiyle günlük hayatınızı kolaylaştırmak için özenle üretildi. Şimdi sipariş verin ve teknolojik ayrıcalıkları anında keşfetmeye başlayın.
+                  </p>
+
+                  <div className="mt-auto">
+                    <button
+                      onClick={() => addToCart(selectedProduct)}
+                      className="w-full bg-[#5b4eff] text-white py-4 rounded-2xl font-bold text-lg hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200/50 flex items-center justify-center"
+                    >
+                      <ShoppingCart className="h-6 w-6 mr-2" />
+                      Sepete Ekle
+                    </button>
+                  </div>
+
+                  {/* Ekstra Bilgiler */}
+                  <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-100">
+                    <div className="flex items-center text-gray-700 text-sm font-medium">
+                      <div className="bg-green-100 text-green-600 p-2.5 rounded-full mr-3">
+                        <Truck className="h-4 w-4" />
+                      </div>
+                      Ücretsiz Kargo
                     </div>
+                    <div className="flex items-center text-gray-700 text-sm font-medium">
+                      <div className="bg-blue-100 text-blue-600 p-2.5 rounded-full mr-3">
+                        <Shield className="h-4 w-4" />
+                      </div>
+                      2 Yıl Garanti
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            {/* ÜRÜN DEĞERLENDİRMELERİ */}
+            {(() => {
+              const productReviews = reviewsByProduct[selectedProduct.id] || [];
+              const userAlreadyReviewed = currentUser && productReviews.some(r => r.user_id === currentUser.id);
+              const avgRating = productReviews.length
+                ? (productReviews.reduce((s, r) => s + r.rating, 0) / productReviews.length).toFixed(1)
+                : null;
+              return (
+                <div className="mt-10 bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
+                    <h2 className="text-xl font-bold text-gray-900">Ürün Değerlendirmeleri</h2>
+                    {avgRating && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-4xl font-black text-gray-900">{avgRating}</span>
+                        <div>
+                          <div className="flex">
+                            {[1,2,3,4,5].map(s => (
+                              <Star key={s} className={`h-5 w-5 fill-current ${s <= Math.round(Number(avgRating)) ? 'text-[#ffc107]' : 'text-gray-200'}`} />
+                            ))}
+                          </div>
+                          <p className="text-sm text-gray-500 mt-0.5">{productReviews.length} değerlendirme</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {productReviews.length === 0 && (
+                    <p className="text-gray-400 text-sm mb-8">Henüz değerlendirme yok. İlk değerlendiren sen ol!</p>
+                  )}
+
+                  {productReviews.length > 0 && (
+                    <ul className="space-y-6 mb-10">
+                      {productReviews.map(review => (
+                        <li key={review.id} className="flex gap-4">
+                          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                            {review.name.charAt(0)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-sm text-gray-900">{review.name}</span>
+                              <span className="text-xs text-gray-400">{review.date}</span>
+                            </div>
+                            <div className="flex mb-2">
+                              {[1,2,3,4,5].map(s => (
+                                <Star key={s} className={`h-4 w-4 fill-current ${s <= review.rating ? 'text-[#ffc107]' : 'text-gray-200'}`} />
+                              ))}
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">{review.comment}</p>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <div className="border-t border-gray-100 pt-8">
+                    <h3 className="font-bold text-gray-900 mb-5">Değerlendirme Yaz</h3>
+                    {!currentUser ? (
+                      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4 text-sm text-gray-600">
+                        <Star className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        Değerlendirme yapmak için <button onClick={() => setCurrentView('account')} className="text-indigo-600 font-semibold hover:underline">giriş yapın</button>.
+                      </div>
+                    ) : userAlreadyReviewed ? (
+                      <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-4 text-sm text-green-700">
+                        <Star className="h-5 w-5 text-green-500 fill-current flex-shrink-0" />
+                        Bu ürün için zaten bir değerlendirme yaptınız.
+                      </div>
+                    ) : (
+                      <form onSubmit={handleReviewSubmit} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Puanınız</label>
+                          <div className="flex gap-1">
+                            {[1,2,3,4,5].map(s => (
+                              <button
+                                key={s}
+                                type="button"
+                                onMouseEnter={() => setReviewForm(f => ({ ...f, hoverRating: s }))}
+                                onMouseLeave={() => setReviewForm(f => ({ ...f, hoverRating: 0 }))}
+                                onClick={() => setReviewForm(f => ({ ...f, rating: s }))}
+                              >
+                                <Star className={`h-8 w-8 fill-current transition-colors ${s <= (reviewForm.hoverRating || reviewForm.rating) ? 'text-[#ffc107]' : 'text-gray-200'}`} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Adınız</label>
+                          <input
+                            type="text"
+                            value={reviewForm.name}
+                            onChange={e => setReviewForm(f => ({ ...f, name: e.target.value }))}
+                            placeholder="Adınızı girin"
+                            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Yorumunuz</label>
+                          <textarea
+                            value={reviewForm.comment}
+                            onChange={e => setReviewForm(f => ({ ...f, comment: e.target.value }))}
+                            placeholder="Ürün hakkında düşüncelerinizi paylaşın..."
+                            rows={4}
+                            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!reviewForm.rating || !reviewForm.name.trim() || !reviewForm.comment.trim()}
+                          className="bg-[#5b4eff] text-white px-8 py-3 rounded-xl font-semibold text-sm hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Değerlendirimi Gönder
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })()}
+
+            {/* ÖNERI KAROSELİ */}
+            {(() => {
+              const suggestions = MOCK_PRODUCTS.filter(p => p.id !== selectedProduct.id && p.category === selectedProduct.category);
+              const fallback = MOCK_PRODUCTS.filter(p => p.id !== selectedProduct.id && p.category !== selectedProduct.category).slice(0, 4);
+              const carouselItems = suggestions.length >= 2 ? suggestions : [...suggestions, ...fallback].slice(0, 4);
+              if (carouselItems.length === 0) return null;
+              return (
+                <div className="mt-12">
+                  <h2 className="text-xl font-bold text-gray-900 mb-6">Bu ürünü alanlar bunları da aldı</h2>
+                  <div className="flex gap-5 overflow-x-auto pb-4 hide-scrollbar">
+                    {carouselItems.map(product => (
+                      <div
+                        key={product.id}
+                        className="flex-shrink-0 w-56 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col cursor-pointer hover:shadow-md transition-shadow duration-300 group"
+                        onClick={() => { setSelectedProduct(product); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                      >
+                        <div className="relative h-40 bg-[#f8f9fa] p-4 flex items-center justify-center flex-shrink-0">
+                          {product.badge && (
+                            <span className="absolute top-3 left-3 z-10 bg-[#5b4eff] text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider leading-none">
+                              {product.badge}
+                            </span>
+                          )}
+                          <img src={product.image} alt={product.name} className="max-h-full max-w-full object-contain mix-blend-darken group-hover:scale-105 transition-transform duration-500" />
+                        </div>
+                        <div className="p-4 flex flex-col flex-1">
+                          <div className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mb-1">{product.category}</div>
+                          <h3 className="font-bold text-sm text-gray-900 mb-2 leading-tight line-clamp-2">{product.name}</h3>
+                          <div className="flex items-center text-xs mb-3">
+                            <Star className="h-3 w-3 fill-current text-[#ffc107] mr-1" />
+                            <span className="font-bold text-gray-900">{product.rating}</span>
+                            <span className="mx-1.5 text-gray-300">•</span>
+                            <span className="text-gray-500">{product.reviews}</span>
+                          </div>
+                          <div className="flex items-center justify-between mt-auto">
+                            <span className="text-base font-black text-gray-900">{formatPrice(product.price)}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                              className="bg-[#0f172a] text-white p-2 rounded-xl hover:bg-indigo-600 transition-colors flex items-center justify-center"
+                            >
+                              <ShoppingCart className="h-4 w-4" strokeWidth={2} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* PAZAR GÖRÜNÜMÜ */}
+        {currentView === 'pazar' && <Pazar currentUser={currentUser} onGoToAccount={() => setCurrentView('account')} />}
+
+        {/* KİRALAMA GÖRÜNÜMÜ */}
+        {currentView === 'kiralama' && <Kiralama currentUser={currentUser} />}
+
+        {/* ÖDEME GÖRÜNÜMÜ */}
+        {currentView === 'odeme' && (
+          <Odeme
+            cart={cart}
+            cartTotal={cartTotal}
+            currentUser={currentUser}
+            onSuccess={() => setCart([])}
+            setCurrentView={setCurrentView}
+          />
+        )}
+
+        {/* HESAP GÖRÜNÜMÜ */}
+        {currentView === 'account' && <HesapAbonelikler setCurrentView={setCurrentView} addToCart={addToCart} currentUser={currentUser} currentSub={currentSub} onSubChange={fetchCurrentSub} />}
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-gray-900 text-white pt-16 pb-8 border-t border-gray-800">
+      <footer className="bg-gray-900 text-white pt-16 pb-8 border-t border-gray-800 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center mb-4">
-                 <div className="bg-indigo-600 text-white p-1.5 rounded-lg mr-2">
-                  <Zap className="h-5 w-5" />
-                </div>
-                <span className="font-bold text-xl tracking-tight text-white">Astro<span className="text-indigo-400">Tech</span></span>
+              <div className="flex items-center mb-4 cursor-pointer" onClick={() => setCurrentView('home')}>
+                 <img src="/logo.png" alt="Mağaza Logo" className="h-8 w-auto mr-2" />
               </div>
               <p className="text-gray-400 text-sm leading-relaxed">
                 En yeni ve en kaliteli elektronik ürünleri uygun fiyatlarla size ulaştırıyoruz. Teknoloji alışverişinin güvenilir adresi.
@@ -498,43 +716,36 @@ export default function App() {
             </div>
             
             <div>
-              <h4 className="font-bold text-lg mb-4 text-white">Kategoriler</h4>
+              <h4 className="font-bold text-lg mb-4 text-white border-b border-gray-700 pb-2 inline-block">Kategoriler</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 {CATEGORIES.filter(c => c !== "Tümü").map(cat => (
-                  <li key={cat}><a href="#" className="hover:text-indigo-400 transition">{cat}</a></li>
+                  <li key={cat}><button onClick={() => { setCurrentView('home'); setSelectedCategory(cat); }} className="hover:text-indigo-400 transition">{cat}</button></li>
                 ))}
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-lg mb-4 text-white">Müşteri Hizmetleri</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-indigo-400 transition">Sıkça Sorulan Sorular</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">Kargo ve Teslimat</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">İade Koşulları</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">Garanti Kapsamı</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition">Bize Ulaşın</a></li>
+              <h4 className="font-bold text-lg mb-4 text-white border-b border-gray-700 pb-2 inline-block">Destek</h4>
+              <ul className="space-y-3 text-sm text-gray-400">
+                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Sıkça Sorulan Sorular</a></li>
+                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Kargo ve Teslimat</a></li>
+                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>İade Koşulları</a></li>
+                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Garanti Kapsamı</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-bold text-lg mb-4 text-white">Bültene Katılın</h4>
+              <h4 className="font-bold text-lg mb-4 text-white border-b border-gray-700 pb-2 inline-block">Bültene Katılın</h4>
               <p className="text-gray-400 text-sm mb-4">Yeni ürünlerden ve indirimlerden anında haberdar olun.</p>
               <form className="flex" onSubmit={(e) => e.preventDefault()}>
-                <input 
-                  type="email" 
-                  placeholder="E-posta adresiniz" 
-                  className="px-4 py-2 w-full rounded-l-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-                <button type="submit" className="bg-indigo-600 px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition font-medium">
-                  Abone Ol
-                </button>
+                <input type="email" placeholder="E-posta adresiniz" className="px-4 py-2 w-full rounded-l-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"/>
+                <button type="submit" className="bg-indigo-600 px-4 py-2 rounded-r-lg hover:bg-indigo-700 transition font-medium">Abone Ol</button>
               </form>
             </div>
           </div>
           
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-            <p>&copy; 2026 AstroTech Elektronik A.Ş. Tüm Hakları Saklıdır.</p>
+            <p>&copy; 2026 Tüm Hakları Saklıdır.</p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">Gizlilik Politikası</a>
               <a href="#" className="hover:text-white transition">Kullanım Şartları</a>

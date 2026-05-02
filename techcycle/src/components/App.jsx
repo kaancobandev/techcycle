@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Star, Smartphone, Laptop, Watch, Tablet, User, Users, Building2, ChevronLeft, Truck, Shield, Crown } from 'lucide-react';
+import { ShoppingCart, Search, Menu, X, Plus, Minus, Trash2, Star, Smartphone, Laptop, Watch, Tablet, User, Users, Building2, ChevronLeft, Truck, Shield, Crown, Sparkles, ChevronRight, CheckCircle2 } from 'lucide-react';
 import HesapAbonelikler from './HesapAbonelikler';
 import Pazar from './Pazar';
 import Kiralama from './Kiralama';
 import Odeme from './Odeme';
+import SSS from './SSS';
+import IadeKosullari from './IadeKosullari';
+import SertifikaKapsami from './SertifikaKapsami';
+import AcikArtirma from './AcikArtirma';
 import { supabase } from '../lib/supabase';
 
 // --- SAHTE VERİ (MOCK DATA) ---
@@ -75,6 +79,19 @@ const MOCK_PRODUCTS = [
   { id: 50, name: "Samsung Galaxy Buds3",        category: "Giyilebilir", price: 6999,   rating: 4.5, reviews: 487, badge: "ÇOK SATAN", image: "https://images.unsplash.com/photo-1598331668826-20cecc596b86?auto=format&fit=crop&q=80&w=800", description: "Açık form faktörü ve temiz ses kalitesiyle günlük kulaklık." },
 ];
 
+// CO2 tasarrufu (kg) — yeni üretim yerine mevcut cihaz kullanımıyla önlenen emisyon
+const CO2_KG = {
+  1:84,  2:80,  3:75,  4:70,  5:82,  6:78,  7:68,  8:79,  9:65,  10:62,
+  11:130,12:110,13:118,14:98, 15:78, 16:88,
+  17:420,18:360,19:310,20:280,
+  21:52, 22:38, 23:35, 24:18, 25:14,
+  26:85, 27:76, 28:70, 29:83, 30:74, 31:68, 32:90, 33:72, 34:55, 35:48,
+  36:125,37:112,38:100,39:85, 40:72,
+  41:395,42:340,43:300,44:265,45:230,
+  46:48, 47:35, 48:32, 49:12, 50:10,
+};
+MOCK_PRODUCTS.forEach(p => { p.co2 = CO2_KG[p.id] ?? 50; });
+
 const CATEGORIES = ["Tümü", "Telefonlar", "Tabletler", "Bilgisayarlar", "Giyilebilir"];
 
 
@@ -90,6 +107,11 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [reviewsByProduct, setReviewsByProduct] = useState({});
   const [reviewForm, setReviewForm] = useState({ rating: 0, hoverRating: 0, name: '', comment: '' });
+
+  const [isAiOpen, setIsAiOpen] = useState(false);
+  const [aiStep, setAiStep] = useState(1);
+  const [aiForm, setAiForm] = useState({ device: '', age: '', income: '', usages: [], priorities: [] });
+  const [aiResults, setAiResults] = useState([]);
 
   const fetchReviews = async (productId) => {
     const { data } = await supabase
@@ -214,6 +236,116 @@ export default function App() {
   // Tema renkleri
   const cardHoverBorder = isElite ? 'hover:border-amber-300 hover:shadow-amber-50' : isPro ? 'hover:border-purple-200 hover:shadow-purple-50' : '';
 
+  const AI_USAGES = [
+    { id: 'gunluk',   label: 'Günlük Kullanım', emoji: '📱' },
+    { id: 'is',       label: 'İş & Üretkenlik', emoji: '💼' },
+    { id: 'ogrenci',  label: 'Öğrenci',          emoji: '🎓' },
+    { id: 'oyun',     label: 'Oyun & Eğlence',   emoji: '🎮' },
+    { id: 'fotograf', label: 'Fotoğrafçılık',    emoji: '📸' },
+    { id: 'muzik',    label: 'Müzik & Podcast',  emoji: '🎵' },
+    { id: 'seyahat',  label: 'Seyahat',           emoji: '✈️' },
+    { id: 'saglik',   label: 'Sağlık & Spor',    emoji: '🏃' },
+  ];
+
+  const AI_PRIORITIES = [
+    { id: 'kamera',     label: 'Kamera',        emoji: '📷' },
+    { id: 'batarya',    label: 'Batarya',        emoji: '🔋' },
+    { id: 'performans', label: 'Performans',     emoji: '⚡' },
+    { id: 'tasarim',    label: 'Tasarım',        emoji: '✨' },
+    { id: 'deger',      label: 'Fiyat / Değer',  emoji: '💎' },
+    { id: 'ekran',      label: 'Ekran',          emoji: '🖥️' },
+  ];
+
+  const DEVICE_MAP = {
+    telefon:    'Telefonlar',
+    tablet:     'Tabletler',
+    bilgisayar: 'Bilgisayarlar',
+    giyilebilir:'Giyilebilir',
+    kararsiz:   null,
+  };
+
+  const getAiRecommendations = () => {
+    const age = parseInt(aiForm.age) || 25;
+    const income = aiForm.income;
+    const usages = aiForm.usages;
+    const priorities = aiForm.priorities;
+    const deviceCat = DEVICE_MAP[aiForm.device];
+
+    const maxPrice = income === 'dusuk' ? 22000 : income === 'orta' ? 65000 : Infinity;
+
+    const MAX_SCORE = 10;
+
+    const scored = MOCK_PRODUCTS
+      .filter(p => p.price <= maxPrice && (deviceCat ? p.category === deviceCat : true))
+      .map(p => {
+      let score = (p.rating - 4) * 0.5;
+
+      // Kullanım amacı skorları
+      if (usages.includes('oyun') && p.category === 'Bilgisayarlar') score += 3;
+      if (usages.includes('oyun') && p.category === 'Telefonlar') score += 2;
+      if (usages.includes('is') && p.category === 'Bilgisayarlar') score += 3;
+      if (usages.includes('is') && p.category === 'Tabletler') score += 2;
+      if (usages.includes('fotograf') && p.category === 'Telefonlar') score += 3;
+      if (usages.includes('ogrenci') && p.category === 'Bilgisayarlar') score += 2;
+      if (usages.includes('ogrenci') && p.category === 'Tabletler') score += 2;
+      if (usages.includes('muzik') && p.category === 'Giyilebilir') score += 3;
+      if (usages.includes('gunluk') && p.category === 'Telefonlar') score += 2;
+      if (usages.includes('gunluk') && p.category === 'Giyilebilir') score += 1;
+      if (usages.includes('seyahat') && p.category === 'Telefonlar') score += 1.5;
+      if (usages.includes('seyahat') && p.category === 'Tabletler') score += 1;
+      if (usages.includes('saglik') && p.category === 'Giyilebilir') score += 3;
+      if (usages.includes('saglik') && p.category === 'Telefonlar') score += 1;
+
+      // Öncelik skorları
+      if (priorities.includes('kamera') && p.category === 'Telefonlar') score += 2;
+      if (priorities.includes('kamera') && p.name.toLowerCase().includes('pro')) score += 1;
+      if (priorities.includes('kamera') && p.name.toLowerCase().includes('ultra')) score += 1;
+      if (priorities.includes('batarya') && p.category === 'Giyilebilir') score += 1;
+      if (priorities.includes('batarya') && (p.name.includes('Plus') || p.name.includes('Ultra'))) score += 1;
+      if (priorities.includes('performans') && (p.name.toLowerCase().includes('pro') || p.name.toLowerCase().includes('ultra'))) score += 2;
+      if (priorities.includes('tasarim') && p.badge === 'YENİ') score += 1;
+      if (priorities.includes('deger') && income === 'dusuk') score += (maxPrice - p.price) / maxPrice * 2;
+      if (priorities.includes('deger') && p.badge === 'İNDİRİM') score += 1.5;
+      if (priorities.includes('ekran') && p.category === 'Tabletler') score += 2;
+      if (priorities.includes('ekran') && p.name.includes('Ultra')) score += 1;
+
+      // Yaş faktörü
+      if (age < 22 && p.badge === 'YENİ') score += 0.5;
+      if (age < 22 && p.badge === 'ÇOK SATAN') score += 0.3;
+      if (age >= 35 && p.category === 'Bilgisayarlar') score += 0.5;
+      if (age >= 50) score += (p.rating - 4.5) * 2;
+
+      // Uyum yüzdesi (0–100)
+      const match = Math.min(100, Math.round((score / MAX_SCORE) * 100));
+
+      // Neden önerildi etiketleri
+      const reasons = [];
+      if (priorities.includes('kamera') && p.category === 'Telefonlar') reasons.push('Kamera odaklı');
+      if (priorities.includes('deger') && p.badge === 'İNDİRİM') reasons.push('İndirimli');
+      if (priorities.includes('performans') && p.name.toLowerCase().includes('pro')) reasons.push('Yüksek performans');
+      if (usages.includes('saglik') && p.category === 'Giyilebilir') reasons.push('Sağlık takibi');
+      if (usages.includes('ogrenci') && p.category === 'Tabletler') reasons.push('Öğrenci dostu');
+      if (usages.includes('is') && p.category === 'Bilgisayarlar') reasons.push('İş için ideal');
+      if (usages.includes('muzik') && p.category === 'Giyilebilir') reasons.push('Ses kalitesi');
+      if (usages.includes('oyun') && p.category === 'Bilgisayarlar') reasons.push('Oyun performansı');
+      if (usages.includes('fotograf') && p.category === 'Telefonlar') reasons.push('Fotoğrafçılık');
+      if (p.badge === 'ÇOK SATAN') reasons.push('Çok satan');
+      if (p.badge === 'YENİ') reasons.push('En yeni model');
+
+      return { ...p, score, match, reasons: reasons.slice(0, 2) };
+    });
+
+    if (deviceCat) {
+      // Belirli kategori seçilmişse en iyi 3 ürünü göster
+      return scored.sort((a, b) => b.score - a.score).slice(0, 3);
+    }
+    // Kararsızsa her kategoriden 1 tane
+    const cats = ['Telefonlar', 'Tabletler', 'Giyilebilir', 'Bilgisayarlar'];
+    return cats
+      .map(cat => scored.filter(p => p.category === cat).sort((a, b) => b.score - a.score)[0])
+      .filter(Boolean);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col">
       {/* NAVBAR */}
@@ -269,6 +401,20 @@ export default function App() {
                 Kiralama
               </button>
 
+              {tier && (
+                <button
+                  onClick={() => setCurrentView('artirma')}
+                  className={`hidden md:flex items-center gap-1.5 text-sm font-bold transition-all px-3 py-2 rounded-xl ${
+                    currentView === 'artirma'
+                      ? (isElite ? 'text-amber-400 bg-amber-500/10' : 'text-violet-600 bg-violet-50')
+                      : (isElite ? 'text-amber-300 hover:text-amber-400' : 'text-violet-600 hover:bg-violet-50')
+                  }`}
+                >
+                  <Crown className="h-4 w-4" />
+                  Açık Arttırma
+                </button>
+              )}
+
               <button
                 onClick={() => setCurrentView('account')}
                 className={`hidden md:flex items-center space-x-2 transition-colors mr-2 ${
@@ -309,6 +455,347 @@ export default function App() {
         </div>
       </nav>
 
+      {/* MOBİL MENÜ PANELİ */}
+      {isMobileMenuOpen && (
+        <div className={`md:hidden fixed top-0 left-0 right-0 bottom-0 z-50 flex flex-col ${isElite ? 'bg-slate-900' : 'bg-white'}`}>
+          <div className={`flex items-center justify-between px-4 py-5 border-b ${isElite ? 'border-slate-700' : 'border-gray-200'}`}>
+            <div className="flex items-center cursor-pointer" onClick={() => { setCurrentView('home'); setIsMobileMenuOpen(false); }}>
+              <img src="/logo.png" alt="Mağaza Logo" className="h-8 w-auto" />
+              <span className={`ml-2 text-lg font-bold ${isElite ? 'text-white' : 'text-gray-900'}`}>Tech Cycle</span>
+            </div>
+            <button className={`p-2 ${isElite ? 'text-slate-300' : 'text-gray-600'}`} onClick={() => setIsMobileMenuOpen(false)}>
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-6 flex flex-col gap-4">
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className={`h-5 w-5 ${isElite ? 'text-slate-400' : 'text-gray-400'}`} />
+              </div>
+              <input
+                type="text"
+                className={`block w-full pl-10 pr-3 py-3 border rounded-full focus:ring-1 text-sm ${isElite ? 'border-slate-600 bg-slate-800 text-white placeholder-slate-400 focus:ring-amber-500' : 'border-gray-300 bg-gray-50 focus:ring-indigo-500'}`}
+                placeholder="Ürün, kategori veya marka ara..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); if(currentView !== 'home') setCurrentView('home'); }}
+              />
+            </div>
+            <button
+              onClick={() => { setCurrentView('home'); setIsMobileMenuOpen(false); }}
+              className={`flex items-center gap-3 w-full px-4 py-4 rounded-xl text-base font-medium ${currentView === 'home' ? (isElite ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-50 text-indigo-600') : (isElite ? 'text-slate-200 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100')}`}
+            >
+              Ana Sayfa
+            </button>
+            <button
+              onClick={() => { setCurrentView('pazar'); setIsMobileMenuOpen(false); }}
+              className={`flex items-center gap-3 w-full px-4 py-4 rounded-xl text-base font-medium ${currentView === 'pazar' ? (isElite ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-50 text-indigo-600') : (isElite ? 'text-slate-200 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100')}`}
+            >
+              <Users className="h-5 w-5" />
+              Pazar
+            </button>
+            <button
+              onClick={() => { setCurrentView('kiralama'); setIsMobileMenuOpen(false); }}
+              className={`flex items-center gap-3 w-full px-4 py-4 rounded-xl text-base font-medium ${currentView === 'kiralama' ? (isElite ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-50 text-indigo-600') : (isElite ? 'text-slate-200 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100')}`}
+            >
+              <Building2 className="h-5 w-5" />
+              Kiralama
+            </button>
+            <button
+              onClick={() => { setCurrentView('account'); setIsMobileMenuOpen(false); }}
+              className={`flex items-center gap-3 w-full px-4 py-4 rounded-xl text-base font-medium ${currentView === 'account' ? (isElite ? 'bg-amber-500/10 text-amber-400' : 'bg-indigo-50 text-indigo-600') : (isElite ? 'text-slate-200 hover:bg-slate-800' : 'text-gray-700 hover:bg-gray-100')}`}
+            >
+              <User className="h-5 w-5" />
+              Hesabım
+            </button>
+            {tier && (
+              <button
+                onClick={() => { setCurrentView('artirma'); setIsMobileMenuOpen(false); }}
+                className={`flex items-center gap-3 w-full px-4 py-4 rounded-xl text-base font-bold ${currentView === 'artirma' ? (isElite ? 'bg-amber-500/10 text-amber-400' : 'bg-violet-50 text-violet-600') : (isElite ? 'text-amber-300 hover:bg-slate-800' : 'text-violet-600 hover:bg-violet-50')}`}
+              >
+                <Crown className="h-5 w-5" />
+                Açık Arttırma
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* AI ASİSTAN BUTONU — sadece premium üyeler */}
+      {isElite && currentView === 'home' && (
+        <button
+          onClick={() => { setIsAiOpen(true); setAiStep(1); setAiForm({ device: '', age: '', income: '', usages: [], priorities: [] }); setAiResults([]); }}
+          className={`fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3.5 rounded-2xl shadow-2xl font-semibold text-sm transition-all hover:scale-105 active:scale-95 ${isElite ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900' : 'bg-gradient-to-r from-violet-600 to-purple-600 text-white'}`}
+        >
+          <Sparkles className="h-5 w-5" />
+          AI Öneri
+        </button>
+      )}
+
+      {/* AI MODAL */}
+      {isAiOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsAiOpen(false)} />
+          <div className={`relative w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden ${isElite ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`} style={{ maxHeight: '92vh' }}>
+
+            {/* Modal başlık */}
+            <div className={`flex items-center justify-between px-6 py-5 border-b ${isElite ? 'border-slate-700' : 'border-gray-100'}`}>
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${isElite ? 'bg-amber-400/20 text-amber-400' : 'bg-violet-100 text-violet-600'}`}>
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className={`text-xs font-medium ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>TechCycle AI</p>
+                  <h3 className="font-bold text-base leading-tight">Kişisel Ürün Önerisi</h3>
+                </div>
+              </div>
+              <button onClick={() => setIsAiOpen(false)} className={`p-2 rounded-xl ${isElite ? 'hover:bg-slate-700 text-slate-400' : 'hover:bg-gray-100 text-gray-400'}`}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Adım göstergesi */}
+            {aiStep < 6 && (
+              <div className="flex items-center gap-2 px-6 pt-4">
+                {[1,2,3,4,5].map(s => (
+                  <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${s <= aiStep ? (isElite ? 'bg-amber-400' : 'bg-violet-600') : (isElite ? 'bg-slate-700' : 'bg-gray-200')}`} />
+                ))}
+              </div>
+            )}
+
+            {/* İçerik */}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-6 py-6">
+
+              {/* ADIM 1 — Cihaz seçimi */}
+              {aiStep === 1 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>Adım 1 / 5</p>
+                    <h4 className="text-xl font-bold mb-1">Ne almak istiyorsunuz?</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Hangi kategoriyi düşündüğünüzü seçin, kararsızsanız AI sizin için karar versin.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'telefon',     label: 'Telefon',         emoji: '📱', wide: false },
+                      { id: 'tablet',      label: 'Tablet',           emoji: '🖥️', wide: false },
+                      { id: 'bilgisayar',  label: 'Bilgisayar',       emoji: '💻', wide: false },
+                      { id: 'giyilebilir', label: 'Kulaklık / Saat', emoji: '🎧', wide: false },
+                      { id: 'kararsiz',    label: 'Karar Vermedim',   emoji: '🤔', wide: true  },
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setAiForm(f => ({ ...f, device: opt.id }))}
+                        className={`flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 transition-all ${opt.wide ? 'col-span-2 flex-row justify-center gap-3' : ''} ${aiForm.device === opt.id ? (isElite ? 'border-amber-400 bg-amber-400/10' : 'border-violet-500 bg-violet-50') : (isElite ? 'border-slate-700 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300')}`}
+                      >
+                        <span className="text-2xl">{opt.emoji}</span>
+                        <span className="text-xs font-semibold text-center leading-tight">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ADIM 2 — Yaş */}
+              {aiStep === 2 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>Adım 2 / 5</p>
+                    <h4 className="text-xl font-bold mb-1">Yaşınız kaç?</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Size en uygun cihazı önerebilmemiz için yaşınızı girin.</p>
+                  </div>
+                  <input
+                    type="number"
+                    min="10"
+                    max="99"
+                    placeholder="Örn: 24"
+                    value={aiForm.age}
+                    onChange={e => setAiForm(f => ({ ...f, age: e.target.value }))}
+                    className={`w-full text-3xl font-bold text-center py-4 rounded-2xl border-2 focus:outline-none transition-colors ${isElite ? 'bg-slate-800 border-slate-600 text-white focus:border-amber-400 placeholder-slate-600' : 'bg-gray-50 border-gray-200 focus:border-violet-500 placeholder-gray-300'}`}
+                  />
+                </div>
+              )}
+
+              {/* ADIM 3 — Gelir */}
+              {aiStep === 3 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>Adım 3 / 5</p>
+                    <h4 className="text-xl font-bold mb-1">Gelir durumunuz?</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Bütçenize uygun seçenekler sunalım.</p>
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    {[
+                      { id: 'dusuk',  label: 'Ekonomik',  sub: '~₺22.000 altı',     emoji: '💰' },
+                      { id: 'orta',   label: 'Orta',      sub: '₺22.000 – ₺65.000', emoji: '💳' },
+                      { id: 'yuksek', label: 'Yüksek',    sub: '₺65.000 üzeri',     emoji: '🏆' },
+                    ].map(opt => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setAiForm(f => ({ ...f, income: opt.id }))}
+                        className={`flex items-center gap-4 w-full px-5 py-4 rounded-2xl border-2 text-left transition-all ${aiForm.income === opt.id ? (isElite ? 'border-amber-400 bg-amber-400/10' : 'border-violet-500 bg-violet-50') : (isElite ? 'border-slate-700 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300')}`}
+                      >
+                        <span className="text-2xl">{opt.emoji}</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-sm">{opt.label}</p>
+                          <p className={`text-xs ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>{opt.sub}</p>
+                        </div>
+                        {aiForm.income === opt.id && <CheckCircle2 className={`h-5 w-5 ${isElite ? 'text-amber-400' : 'text-violet-600'}`} />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ADIM 4 — Kullanım */}
+              {aiStep === 4 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>Adım 4 / 5</p>
+                    <h4 className="text-xl font-bold mb-1">Ne için kullanacaksınız?</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Birden fazla seçebilirsiniz.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {AI_USAGES.map(u => {
+                      const sel = aiForm.usages.includes(u.id);
+                      return (
+                        <button
+                          key={u.id}
+                          onClick={() => setAiForm(f => ({ ...f, usages: sel ? f.usages.filter(x => x !== u.id) : [...f.usages, u.id] }))}
+                          className={`flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 transition-all ${sel ? (isElite ? 'border-amber-400 bg-amber-400/10' : 'border-violet-500 bg-violet-50') : (isElite ? 'border-slate-700 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300')}`}
+                        >
+                          <span className="text-2xl">{u.emoji}</span>
+                          <span className="text-xs font-semibold text-center leading-tight">{u.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ADIM 5 — Öncelikler */}
+              {aiStep === 5 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>Adım 5 / 5</p>
+                    <h4 className="text-xl font-bold mb-1">En çok neye önem veriyorsunuz?</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Birden fazla seçebilirsiniz.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {AI_PRIORITIES.map(pr => {
+                      const sel = aiForm.priorities.includes(pr.id);
+                      return (
+                        <button
+                          key={pr.id}
+                          onClick={() => setAiForm(f => ({ ...f, priorities: sel ? f.priorities.filter(x => x !== pr.id) : [...f.priorities, pr.id] }))}
+                          className={`flex flex-col items-center gap-2 py-4 px-3 rounded-2xl border-2 transition-all ${sel ? (isElite ? 'border-amber-400 bg-amber-400/10' : 'border-violet-500 bg-violet-50') : (isElite ? 'border-slate-700 hover:border-slate-500' : 'border-gray-200 hover:border-gray-300')}`}
+                        >
+                          <span className="text-2xl">{pr.emoji}</span>
+                          <span className="text-xs font-semibold text-center leading-tight">{pr.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ADIM 6 — Sonuçlar */}
+              {aiStep === 6 && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3 ${isElite ? 'bg-amber-400/20 text-amber-400' : 'bg-violet-100 text-violet-700'}`}>
+                      <Sparkles className="h-3.5 w-3.5" /> AI Analizi Tamamlandı
+                    </div>
+                    <h4 className="text-xl font-bold mb-1">Size Özel Seçimler</h4>
+                    <p className={`text-sm ${isElite ? 'text-slate-400' : 'text-gray-500'}`}>Profilinize göre her kategoriden en iyi ürünü seçtik.</p>
+                  </div>
+                  <div className="flex flex-col gap-4">
+                    {aiResults.map(p => (
+                      <div
+                        key={p.id}
+                        className={`rounded-2xl border overflow-hidden ${isElite ? 'border-slate-700 bg-slate-800' : 'border-gray-200 bg-white'}`}
+                      >
+                        {/* Ürün satırı */}
+                        <button
+                          onClick={() => { setSelectedProduct(p); setCurrentView('productDetail'); setIsAiOpen(false); }}
+                          className="flex items-center gap-4 w-full p-4 text-left hover:opacity-80 transition-opacity"
+                        >
+                          <img src={p.image} alt={p.name} className="h-14 w-14 rounded-xl object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-[11px] font-semibold uppercase tracking-wider mb-0.5 ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>{p.category}</p>
+                            <p className="font-bold text-sm leading-tight line-clamp-1">{p.name}</p>
+                            <p className="font-black text-base mt-0.5">{formatPrice(p.price)}</p>
+                          </div>
+                          {/* Eşleşme yüzdesi */}
+                          <div className="flex flex-col items-center flex-shrink-0">
+                            <span className={`text-lg font-black ${isElite ? 'text-amber-400' : 'text-violet-600'}`}>{p.match}%</span>
+                            <span className={`text-[10px] font-medium ${isElite ? 'text-slate-500' : 'text-gray-400'}`}>uyum</span>
+                          </div>
+                        </button>
+
+                        {/* Neden etiketleri + Sepete Ekle */}
+                        <div className={`flex items-center justify-between px-4 pb-3 gap-2 border-t ${isElite ? 'border-slate-700' : 'border-gray-100'}`}>
+                          <div className="flex flex-wrap gap-1.5 pt-2">
+                            {p.reasons.map((r, i) => (
+                              <span key={i} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isElite ? 'bg-slate-700 text-slate-300' : 'bg-gray-100 text-gray-600'}`}>{r}</span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => { addToCart(p); setIsAiOpen(false); }}
+                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all mt-2 ${isElite ? 'bg-amber-400 text-slate-900 hover:bg-amber-300' : 'bg-violet-600 text-white hover:bg-violet-700'}`}
+                          >
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Sepete Ekle
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => { setAiStep(1); setAiForm({ device: '', age: '', income: '', usages: [], priorities: [] }); setAiResults([]); }}
+                    className={`text-sm font-medium underline underline-offset-4 text-center ${isElite ? 'text-slate-400' : 'text-gray-400'}`}
+                  >
+                    Yeniden Başla
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Alt butonlar */}
+            {aiStep < 6 && (
+              <div className={`flex gap-3 px-6 py-5 border-t ${isElite ? 'border-slate-700' : 'border-gray-100'}`}>
+                {aiStep > 1 && (
+                  <button
+                    onClick={() => setAiStep(s => s - 1)}
+                    className={`px-5 py-4 rounded-2xl font-bold text-sm transition-all ${isElite ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    Geri
+                  </button>
+                )}
+                <button
+                  disabled={
+                    (aiStep === 1 && !aiForm.device) ||
+                    (aiStep === 2 && !aiForm.age) ||
+                    (aiStep === 3 && !aiForm.income) ||
+                    (aiStep === 4 && aiForm.usages.length === 0) ||
+                    (aiStep === 5 && aiForm.priorities.length === 0)
+                  }
+                  onClick={() => {
+                    if (aiStep < 5) { setAiStep(s => s + 1); }
+                    else { setAiResults(getAiRecommendations()); setAiStep(6); }
+                  }}
+                  className={`flex-1 py-4 rounded-2xl font-bold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${isElite ? 'bg-amber-400 text-slate-900 hover:bg-amber-300' : 'bg-violet-600 text-white hover:bg-violet-700'}`}
+                >
+                  {aiStep === 5 ? (
+                    <><Sparkles className="h-4 w-4" /> Önerileri Göster</>
+                  ) : (
+                    <><span>Devam Et</span> <ChevronRight className="h-4 w-4" /></>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* SEPET ÇEKMECESİ */}
       {isCartOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
@@ -344,11 +831,42 @@ export default function App() {
                 )}
               </div>
               {cart.length > 0 && (
-                <div className="border-t px-4 py-6 bg-gray-50">
-                  <div className="flex justify-between font-bold text-lg mb-4"><p>Ara Toplam</p><p>{formatPrice(cartTotal)}</p></div>
-                  <button onClick={handleCheckout} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-medium">
-                    {currentUser ? 'Güvenli Ödeme Yap' : 'Giriş Yap ve Ödeme Yap'}
-                  </button>
+                <div className="border-t bg-gray-50">
+                  {/* CO2 tasarrufu özeti */}
+                  {(() => {
+                    const totalCo2 = cart.reduce((sum, item) => sum + (item.co2 ?? 0) * item.quantity, 0);
+                    const trees = Math.round(totalCo2 / 21);
+                    const km = Math.round(totalCo2 / 0.21);
+                    return (
+                      <div className="mx-4 mt-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">🌍</span>
+                          <p className="text-emerald-800 font-bold text-sm">Sepetinizin Doğaya Katkısı</p>
+                        </div>
+                        <p className="text-emerald-700 text-xs leading-relaxed mb-3">
+                          Bu alışverişle yaklaşık
+                          <span className="font-black text-emerald-800 text-base mx-1">{totalCo2} kg</span>
+                          CO₂ emisyonunun önüne geçilmesine katkı sağlıyorsunuz.
+                        </p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="bg-white rounded-xl px-3 py-2 text-center border border-emerald-100">
+                            <p className="text-lg font-black text-emerald-700">🌳 {trees}</p>
+                            <p className="text-[10px] text-emerald-500 font-medium">ağacın yıllık emdiği CO₂</p>
+                          </div>
+                          <div className="bg-white rounded-xl px-3 py-2 text-center border border-emerald-100">
+                            <p className="text-lg font-black text-emerald-700">🚗 {km.toLocaleString('tr-TR')}</p>
+                            <p className="text-[10px] text-emerald-500 font-medium">km araba yolculuğuna eşdeğer</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <div className="px-4 py-5">
+                    <div className="flex justify-between font-bold text-lg mb-4"><p>Ara Toplam</p><p>{formatPrice(cartTotal)}</p></div>
+                    <button onClick={handleCheckout} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-medium">
+                      {currentUser ? 'Güvenli Ödeme Yap' : 'Giriş Yap ve Ödeme Yap'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -357,29 +875,29 @@ export default function App() {
       )}
 
       {/* ANA İÇERİK ALANI */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8">
+      <main className={`flex-1 w-full max-w-7xl mx-auto px-4 py-8 ${currentView === 'artirma' ? 'hidden' : ''}`}>
         
         {/* === ANA SAYFA (MAĞAZA) GÖRÜNÜMÜ === */}
         {currentView === 'home' && (
           <>
-            {!searchQuery && selectedCategory === "Tümü" && (
+            {!searchQuery && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-indigo-200'}`}>
-                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'}`}><Smartphone className="h-7 w-7" /></div>
+                <button onClick={() => { setSelectedCategory('Telefonlar'); document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }); }} className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${selectedCategory === 'Telefonlar' ? (isElite ? 'border-amber-400 shadow-amber-50' : 'border-indigo-400') : (cardHoverBorder || 'hover:border-indigo-200')}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${selectedCategory === 'Telefonlar' ? (isElite ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white') : (isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white')}`}><Smartphone className="h-7 w-7" /></div>
                   <h3 className="font-bold text-sm">Telefon</h3>
-                </a>
-                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-blue-200'}`}>
-                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'}`}><Laptop className="h-7 w-7" /></div>
+                </button>
+                <button onClick={() => { setSelectedCategory('Bilgisayarlar'); document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }); }} className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${selectedCategory === 'Bilgisayarlar' ? (isElite ? 'border-amber-400 shadow-amber-50' : 'border-blue-400') : (cardHoverBorder || 'hover:border-blue-200')}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${selectedCategory === 'Bilgisayarlar' ? (isElite ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white') : (isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white')}`}><Laptop className="h-7 w-7" /></div>
                   <h3 className="font-bold text-sm">Laptop</h3>
-                </a>
-                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-purple-200'}`}>
-                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white'}`}><Watch className="h-7 w-7" /></div>
+                </button>
+                <button onClick={() => { setSelectedCategory('Giyilebilir'); document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }); }} className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${selectedCategory === 'Giyilebilir' ? (isElite ? 'border-amber-400 shadow-amber-50' : 'border-purple-400') : (cardHoverBorder || 'hover:border-purple-200')}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${selectedCategory === 'Giyilebilir' ? (isElite ? 'bg-amber-500 text-white' : 'bg-purple-600 text-white') : (isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white')}`}><Watch className="h-7 w-7" /></div>
                   <h3 className="font-bold text-sm">Wearables</h3>
-                </a>
-                <a href="#" className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${cardHoverBorder || 'hover:border-green-200'}`}>
-                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white'}`}><Tablet className="h-7 w-7" /></div>
+                </button>
+                <button onClick={() => { setSelectedCategory('Tabletler'); document.getElementById('products-section')?.scrollIntoView({ behavior: 'smooth' }); }} className={`bg-white p-4 rounded-2xl shadow-sm border flex flex-col items-center transition-all duration-300 ease-out hover:-translate-y-2 hover:scale-105 hover:shadow-xl group ${selectedCategory === 'Tabletler' ? (isElite ? 'border-amber-400 shadow-amber-50' : 'border-green-400') : (cardHoverBorder || 'hover:border-green-200')}`}>
+                  <div className={`p-3 rounded-full mb-2.5 transition-all duration-300 group-hover:scale-110 ${selectedCategory === 'Tabletler' ? (isElite ? 'bg-amber-500 text-white' : 'bg-green-600 text-white') : (isElite ? 'bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white' : isPro ? 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white' : 'bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white')}`}><Tablet className="h-7 w-7" /></div>
                   <h3 className="font-bold text-sm">Tablet</h3>
-                </a>
+                </button>
               </div>
             )}
 
@@ -491,8 +1009,25 @@ export default function App() {
                     </button>
                   </div>
 
+                  {/* CO2 Tasarrufu */}
+                  <div className="mt-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 px-5 py-4 flex items-center gap-4">
+                    <div className="text-3xl select-none">🌱</div>
+                    <div className="flex-1">
+                      <p className="text-emerald-800 font-bold text-sm">Bu cihazı tercih ederek</p>
+                      <p className="text-emerald-600 text-xs leading-relaxed mt-0.5">
+                        Yeni bir cihaz üretilmesine kıyasla yaklaşık
+                        <span className="text-emerald-800 font-black text-base mx-1">{selectedProduct.co2} kg</span>
+                        CO₂ emisyonunun önüne geçilmesine katkı sağlıyorsunuz.
+                      </p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-2xl font-black text-emerald-700">{selectedProduct.co2}<span className="text-sm font-semibold"> kg</span></p>
+                      <p className="text-[10px] text-emerald-500 font-medium">CO₂ tasarrufu</p>
+                    </div>
+                  </div>
+
                   {/* Ekstra Bilgiler */}
-                  <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-100">
                     <div className="flex items-center text-gray-700 text-sm font-medium">
                       <div className="bg-green-100 text-green-600 p-2.5 rounded-full mr-3">
                         <Truck className="h-4 w-4" />
@@ -700,7 +1235,29 @@ export default function App() {
 
         {/* HESAP GÖRÜNÜMÜ */}
         {currentView === 'account' && <HesapAbonelikler setCurrentView={setCurrentView} addToCart={addToCart} currentUser={currentUser} currentSub={currentSub} onSubChange={fetchCurrentSub} />}
+
+        {/* SSS GÖRÜNÜMÜ */}
+        {currentView === 'sss' && <SSS onBack={() => setCurrentView('home')} />}
+
+        {/* İADE KOŞULLARI GÖRÜNÜMÜ */}
+        {currentView === 'iade' && <IadeKosullari onBack={() => setCurrentView('home')} />}
+
+        {/* SERTİFİKA KAPSAMI GÖRÜNÜMÜ */}
+        {currentView === 'sertifika' && <SertifikaKapsami onBack={() => setCurrentView('home')} />}
+
       </main>
+
+      {/* AÇIK ARTTIRMA GÖRÜNÜMÜ — tam genişlik, main dışında */}
+      {currentView === 'artirma' && (
+        <AcikArtirma
+          currentUser={currentUser}
+          tier={tier}
+          isElite={isElite}
+          isPro={isPro}
+          onGoToAccount={() => setCurrentView('account')}
+          onBack={() => setCurrentView('home')}
+        />
+      )}
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-white pt-16 pb-8 border-t border-gray-800 mt-auto">
@@ -727,10 +1284,10 @@ export default function App() {
             <div>
               <h4 className="font-bold text-lg mb-4 text-white border-b border-gray-700 pb-2 inline-block">Destek</h4>
               <ul className="space-y-3 text-sm text-gray-400">
-                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Sıkça Sorulan Sorular</a></li>
+                <li><button onClick={() => setCurrentView('sss')} className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Sıkça Sorulan Sorular</button></li>
                 <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Kargo ve Teslimat</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>İade Koşulları</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Garanti Kapsamı</a></li>
+                <li><button onClick={() => setCurrentView('iade')} className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>İade Koşulları</button></li>
+                <li><button onClick={() => setCurrentView('sertifika')} className="hover:text-indigo-400 transition flex items-center"><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full mr-2"></span>Sertifika Kapsamı</button></li>
               </ul>
             </div>
 

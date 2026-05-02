@@ -270,7 +270,7 @@ export default function Odeme({ cart, cartTotal, currentUser, onSuccess, setCurr
               <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
                 <CreditCard className="h-4 w-4 text-indigo-600" />
               </div>
-              <h2 className="font-bold text-gray-900">Ödeme Yöntemi</h2>
+              <h2 className="font-bold text-gray-900">Iyzico ile Ödeme</h2>
             </div>
 
             <div className="space-y-3 mb-5">
